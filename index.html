@@ -3,408 +3,395 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>職場求生：對決慣老闆</title>
+    <title>職場求生：對決慣老闆 (升級強化版)</title>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- TensorFlow.js & Teachable Machine Pose Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@latest/dist/teachablemachine-pose.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- TensorFlow.js & Teachable Machine Pose -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
     <style>
-        .glass {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
         }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.9);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .boss-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
         }
-        #webcam-container canvas {
-            display: block;
-            width: 100% !important;
-            height: auto !important;
-            border-radius: 1rem;
-            transform: scaleX(-1); /* 鏡像翻轉讓操作更直覺 */
-            image-rendering: -webkit-optimize-contrast;
+        .theme-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .theme-card:hover {
+            transform: translateY(-3px);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.2);
+        }
+        .theme-card.selected {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.08);
+            box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.3);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.8); }
+        }
+        .glow-active {
+            animation: pulseGlow 1.5s infinite;
+        }
+        @keyframes rageShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-4px); }
+            40%, 80% { transform: translateX(4px); }
+        }
+        .rage-shake {
+            animation: rageShake 0.4s ease-in-out;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-slate-100 min-h-screen font-sans flex flex-col items-center justify-between p-4 select-none">
+<body class="min-h-screen flex flex-col items-center justify-between p-4 md:p-6 overflow-x-hidden">
 
-    <header class="w-full max-w-4xl flex justify-between items-center py-4 px-6 glass rounded-2xl shadow-2xl">
-        <div class="flex items-center gap-3">
-            <span class="text-3xl">🎮</span>
+    <header class="w-full max-w-4xl flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-600 to-pink-600 p-2.5 rounded-2xl text-white shadow-lg">
+                <i class="fa-solid fa-gamepad text-xl"></i>
+            </div>
             <div>
-                <h1 class="text-xl font-black bg-gradient-to-r from-pink-400 to-indigo-300 bg-clip-text text-transparent">職場求生：對決慣老闆</h1>
-                <p class="text-xs text-slate-300 font-medium">Teachable Machine AI 姿態辨識互動挑戰</p>
+                <h1 class="text-lg md:text-xl font-black tracking-wider text-white">職場求生：對決慣老闆 <span class="text-xs px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded-full border border-pink-500/40 ml-2">PRO 升級版</span></h1>
+                <p class="text-xs text-slate-400">Teachable Machine AI 姿態辨識與動態怒氣系統</p>
             </div>
         </div>
-        <div class="flex items-center gap-3">
-            <button id="bgm-btn" onclick="toggleBGM()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-sm font-bold rounded-xl transition shadow-lg cursor-pointer flex items-center gap-2 border border-indigo-400/35">
-                🎹 <span>開啟柔和鋼琴音樂</span>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleMusic()" id="music-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg flex items-center space-x-2 transition-all">
+                <i class="fa-solid fa-music"></i>
+                <span id="music-text">開啟柔和鋼琴音樂</span>
             </button>
-            <button onclick="returnToMenu()" id="home-btn" class="hidden px-4 py-2 bg-slate-700 hover:bg-slate-600 text-sm font-bold rounded-xl transition shadow-lg cursor-pointer border border-slate-500/30">
-                🏠 回主選單
-            </button>
+            <div id="status-badge" class="px-3 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-full text-xs font-semibold flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span id="status-text">模型載入中...</span>
+            </div>
         </div>
     </header>
 
-    <main class="w-full max-w-4xl my-6 flex-1 flex flex-col items-center justify-center">
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center">
 
-        <!-- 畫面一：主選單 -->
-        <div id="menu-screen" class="w-full max-w-2xl glass p-8 rounded-3xl shadow-2xl text-center flex flex-col gap-6">
+        <div id="screen-start" class="w-full boss-card rounded-3xl p-6 md:p-10 shadow-2xl space-y-8">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl md:text-3xl font-black text-white">選擇挑戰模式與主題</h2>
+                <p class="text-slate-400 text-xs md:text-sm">
+                    請對準鏡頭比出 <b>OK (讚)</b> 或 <b>NO (倒讚)</b> 來對決老闆！在 Default 思考狀態下絕對不計時！
+                </p>
+            </div>
+
+            <!-- Four Theme Cards Selection Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                <div onclick="selectTheme('workplace')" id="theme-workplace" class="theme-card selected bg-slate-900/90 border border-slate-700 rounded-2xl p-4 text-left shadow-md">
+                    <div class="flex items-start space-x-3">
+                        <div class="mt-1 w-4 h-4 rounded-full border-2 border-pink-500 flex items-center justify-center">
+                            <div class="w-2 h-2 rounded-full bg-pink-500"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">主題一：職場慣老闆與幹話特輯</h3>
+                            <p class="text-xs text-slate-400 mt-1">慣老闆幹話、加班文化與佛心福利 (160題)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="selectTheme('kpop')" id="theme-kpop" class="theme-card bg-slate-900/90 border border-slate-700 rounded-2xl p-4 text-left shadow-md">
+                    <div class="flex items-start space-x-3">
+                        <div class="mt-1 w-4 h-4 rounded-full border-2 border-slate-500 flex items-center justify-center">
+                            <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">主題二：韓團飯圈護衛戰</h3>
+                            <p class="text-xs text-slate-400 mt-1">TWICE 成員 SOLO、經典神曲與 NewJeans (320題)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="selectTheme('song')" id="theme-song" class="theme-card bg-slate-900/90 border border-slate-700 rounded-2xl p-4 text-left shadow-md">
+                    <div class="flex items-start space-x-3">
+                        <div class="mt-1 w-4 h-4 rounded-full border-2 border-slate-500 flex items-center justify-center">
+                            <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">主題三：豪記金曲大考驗</h3>
+                            <p class="text-xs text-slate-400 mt-1">龍千玉、翁立友等 13 位豪記歌手經典歌單 (850題)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="selectTheme('hunter')" id="theme-hunter" class="theme-card bg-slate-900/90 border border-slate-700 rounded-2xl p-4 text-left shadow-md">
+                    <div class="flex items-start space-x-3">
+                        <div class="mt-1 w-4 h-4 rounded-full border-2 border-slate-500 flex items-center justify-center">
+                            <div class="w-2 h-2 rounded-full bg-transparent"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">主題四：Hunter X Hunter大亂鬥</h3>
+                            <p class="text-xs text-slate-400 mt-1">獵人角色、念能力與辦公室情境 (320題)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Mode Buttons at Bottom -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <button onclick="startMode('limit')" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>30 秒極限模式</span>
+                </button>
+                <button onclick="startMode('fusion')" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-trophy"></i>
+                    <span>50 題大融合成就賽</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-game" class="w-full hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Left: Boss Dialog & Question -->
+            <div id="boss-panel-card" class="lg:col-span-7 boss-card rounded-3xl p-6 shadow-xl space-y-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full font-bold">第 <span id="current-stage">1</span> 題</span>
+                        <span id="combo-badge" class="hidden text-xs bg-pink-500/20 text-pink-300 px-2.5 py-1 rounded-full font-bold animate-bounce">🔥 連擊 <span id="combo-count">0</span>x</span>
+                    </div>
+                    <span class="text-xs text-slate-400">目前模式：<span id="active-mode-name" class="text-pink-400 font-bold">50題大融合賽</span></span>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-2xl flex items-center justify-center text-xl shadow">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <div>
+                                <h3 id="boss-name" class="font-bold text-white text-lg">慣老闆</h3>
+                                <p id="boss-title-subtitle" class="text-xs text-rose-400 font-medium">發布了挑戰情境</p>
+                            </div>
+                        </div>
+                        <!-- Boss Rage Meter -->
+                        <div class="text-right space-y-1">
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">老闆怒氣值</span>
+                            <div class="w-24 bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700">
+                                <div id="boss-rage-bar" class="bg-gradient-to-r from-amber-500 to-rose-600 h-full rounded-full transition-all duration-300" style="width: 20%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-700/80 shadow-inner relative">
+                        <span class="absolute -top-3 left-6 bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded border border-slate-700">情境內容</span>
+                        <p id="scenario-text" class="text-slate-100 text-base md:text-lg leading-relaxed pt-1">
+                            載入情境中...
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Strict Default Idle Lock & Hold Progress -->
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80 space-y-3">
+                    <div class="flex justify-between items-center text-xs font-semibold text-slate-400">
+                        <span id="timer-status-title">請安心思考，Default 狀態絕不計時</span>
+                        <span id="detected-gesture-label" class="text-slate-400 font-mono">目前手勢：Default (思考中)</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                        <div id="confidence-bar" class="bg-gradient-to-r from-indigo-500 to-pink-400 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
+                        <div id="hold-progress-bar" class="bg-amber-400 h-full rounded-full transition-all duration-100" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400 pt-1">
+                        <span>👍 <b>比出 OK 手勢</b> = 接受 / 正確</span>
+                        <span>❌ <b>比出 NO 手勢</b> = 拒絕 / 錯誤</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Webcam & Camera Preview -->
+            <div class="lg:col-span-5 boss-card rounded-3xl p-5 shadow-xl flex flex-col items-center space-y-4">
+                <div class="w-full flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-400 tracking-wider uppercase">鏡頭即時預覽</span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+                <div id="webcam-container" class="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                    <div class="absolute inset-0 flex items-center justify-center text-slate-600 text-sm">
+                        鏡頭初始化中...
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 text-center">請保持上半身在鏡頭內，堅定比出 OK 或 NO 進行判定。</p>
+            </div>
+        </div>
+
+        <div id="screen-result" class="w-full hidden boss-card rounded-3xl p-8 md:p-12 text-center shadow-2xl space-y-6 max-w-lg mx-auto">
+            <div id="result-icon" class="w-24 h-24 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner"></div>
             <div class="space-y-2">
-                <h2 class="text-3xl font-black tracking-wide text-white">選擇挑戰模式與主題</h2>
-                <p class="text-sm text-slate-200">請對準鏡頭比出 <span class="text-emerald-400 font-extrabold">OK (讚)</span> 或 <span class="text-rose-400 font-extrabold">NO (倒讚)</span> 來對決慣老闆！</p>
+                <h2 id="result-title" class="text-2xl md:text-3xl font-black text-white">結算報告</h2>
+                <p id="result-desc" class="text-slate-300 text-sm md:text-base">挑戰完成！</p>
             </div>
-
-            <!-- 主題選擇 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <label class="block p-4 rounded-2xl bg-slate-800/90 border border-white/10 hover:border-pink-500 transition cursor-pointer shadow-md">
-                    <input type="radio" name="topic" value="0" checked class="accent-pink-500 mr-2 scale-110">
-                    <span class="font-bold text-pink-300 text-base">主題一：職場慣老闆與幹話特輯</span>
-                    <p class="text-xs text-slate-300 mt-1">慣老闆幹話、加班文化與佛心福利 (160題)</p>
-                </label>
-                <label class="block p-4 rounded-2xl bg-slate-800/90 border border-white/10 hover:border-indigo-500 transition cursor-pointer shadow-md">
-                    <input type="radio" name="topic" value="1" class="accent-indigo-500 mr-2 scale-110">
-                    <span class="font-bold text-indigo-300 text-base">主題二：韓團飯圈護衛戰</span>
-                    <p class="text-xs text-slate-300 mt-1">TWICE 成員 SOLO、經典神曲與 NewJeans (320題)</p>
-                </label>
-                <label class="block p-4 rounded-2xl bg-slate-800/90 border border-white/10 hover:border-amber-500 transition cursor-pointer shadow-md">
-                    <input type="radio" name="topic" value="2" class="accent-amber-500 mr-2 scale-110">
-                    <span class="font-bold text-amber-300 text-base">主題三：豪記金曲大考驗</span>
-                    <p class="text-xs text-slate-300 mt-1">龍千玉、翁立友等 13 位豪記歌手經典歌單 (850題)</p>
-                </label>
-                <label class="block p-4 rounded-2xl bg-slate-800/90 border border-white/10 hover:border-emerald-500 transition cursor-pointer shadow-md">
-                    <input type="radio" name="topic" value="3" class="accent-emerald-500 mr-2 scale-110">
-                    <span class="font-bold text-emerald-300 text-base">主題四：Hunter X Hunter大亂鬥</span>
-                    <p class="text-xs text-slate-300 mt-1">獵人角色、念能力與辦公室情境 (320題)</p>
-                </label>
-            </div>
-
-            <!-- 模式按鈕 -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mt-2">
-                <button onclick="startGame(1)" class="flex-1 py-4 px-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 font-bold rounded-2xl shadow-xl transition transform hover:-translate-y-0.5 cursor-pointer text-lg text-white border border-pink-400/30">
-                    ⚡ 30 秒極限模式
-                </button>
-                <button onclick="startGame(2)" class="flex-1 py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-bold rounded-2xl shadow-xl transition transform hover:-translate-y-0.5 cursor-pointer text-lg text-white border border-indigo-400/30">
-                    🏆 50 題大融合成就賽
+            <div class="pt-4">
+                <button onclick="returnToHome()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-rotate-right mr-2"></i> 返回主畫面
                 </button>
             </div>
-        </div>
-
-        <!-- 畫面二：載入畫面 -->
-        <div id="loading-screen" class="hidden w-full max-w-md glass p-10 rounded-3xl shadow-2xl text-center flex flex-col items-center gap-6">
-            <div class="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-            <div>
-                <h3 class="text-xl font-bold text-white">正在啟動攝影機與 Pose AI 模型...</h3>
-                <p class="text-xs text-slate-300 mt-2">請允許瀏覽器存取攝影機，並將上半身對準鏡頭</p>
-            </div>
-        </div>
-
-        <!-- 畫面三：遊戲進行中 -->
-        <div id="game-screen" class="hidden w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- 左側：攝影機與骨架繪製區 -->
-            <div class="glass p-5 rounded-3xl shadow-xl flex flex-col items-center gap-4">
-                <div class="w-full flex justify-between items-center text-sm font-bold">
-                    <span class="text-indigo-300">📷 骨架姿態辨識畫面</span>
-                    <span id="fps-badge" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-xs rounded-full border border-emerald-500/30 font-bold">模型載入中</span>
-                </div>
-                <!-- 攝影機容器 -->
-                <div id="webcam-container" class="w-full bg-slate-950 rounded-2xl overflow-hidden border border-white/20 relative shadow-inner flex justify-center">
-                    <!-- 動態 Canvas 插入處 -->
-                </div>
-                <!-- 即時辨識結果與信心分數 -->
-                <div class="w-full bg-slate-900/90 p-4 rounded-xl border border-white/10 text-center space-y-2 shadow-inner">
-                    <div class="text-xs text-slate-300 font-medium">目前姿勢判定</div>
-                    <div id="live-prediction" class="text-2xl font-black text-pink-400">等待姿勢中...</div>
-                    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mt-1 border border-white/10">
-                        <div id="confidence-bar" class="bg-gradient-to-r from-pink-500 to-indigo-500 h-full w-0 transition-all duration-150"></div>
-                    </div>
-                    <div id="confidence-text" class="text-xs text-slate-300 font-semibold">信心值: 0%</div>
-                </div>
-            </div>
-
-            <!-- 右側：題目卡與遊戲狀態區 -->
-            <div class="lg:col-span-2 glass p-6 rounded-3xl shadow-xl flex flex-col justify-between gap-6 relative overflow-hidden">
-                
-                <!-- 頂部計分與進度列 -->
-                <div class="flex justify-between items-center border-b border-white/10 pb-4">
-                    <div>
-                        <div class="text-xs text-slate-300" id="mode-title-tag">模式</div>
-                        <div class="text-2xl font-black text-white" id="score-display">分數: 0</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-xs text-slate-300">剩餘時間 / 題數</div>
-                        <div class="text-2xl font-black text-pink-400" id="time-or-count">30s</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-slate-300">連擊倍率</div>
-                        <div class="text-2xl font-black text-amber-400" id="combo-display">1x</div>
-                    </div>
-                </div>
-
-                <!-- 題目核心卡片 -->
-                <div id="question-card" class="bg-slate-900 border-2 border-white/15 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[220px] transition-all duration-300 relative shadow-2xl">
-                    <div id="feedback-icon" class="absolute top-4 right-4 text-4xl opacity-0 transition-opacity duration-300"></div>
-                    <span id="question-theme-tag" class="px-3 py-1 bg-indigo-500/20 text-xs font-bold rounded-full text-indigo-300 mb-4 border border-indigo-400/30">主題名稱</span>
-                    <h3 id="question-text" class="text-xl md:text-2xl font-bold leading-relaxed text-slate-100">載入題目中...</h3>
-                </div>
-
-                <!-- 冷卻進度條 (防誤判) -->
-                <div class="w-full space-y-1">
-                    <div class="flex justify-between text-xs text-slate-300 font-semibold">
-                        <span id="cooldown-status">請比出正確手勢 (OK 或 NO)</span>
-                        <span id="cooldown-percent">準備就緒</span>
-                    </div>
-                    <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-white/10">
-                        <div id="cooldown-bar" class="bg-indigo-500 h-full w-full transition-all duration-75"></div>
-                    </div>
-                </div>
-
-                <!-- 提示說明 -->
-                <div class="bg-indigo-950/70 border border-indigo-500/30 p-3 rounded-xl text-xs text-indigo-200 flex items-center gap-2 shadow-sm font-medium">
-                    <span>💡</span>
-                    <span>比讚 (OK) 代表福利 / 正確 / 支持；比倒讚 (NO) 代表幹話 / 錯誤 / 抗議。答對得分，答錯扣分！</span>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- 畫面四：結算畫面 -->
-        <div id="gameover-screen" class="hidden w-full max-w-md glass p-8 rounded-3xl shadow-2xl text-center flex flex-col gap-6">
-            <div class="text-5xl">🏆</div>
-            <div>
-                <h3 class="text-2xl font-black text-white">挑戰結算</h3>
-                <p class="text-sm text-slate-200 mt-1">你已經成功挺過職場震撼教育！</p>
-            </div>
-            <div class="bg-slate-900/90 p-6 rounded-2xl border border-white/10 space-y-3 shadow-inner">
-                <div>
-                    <div class="text-xs text-slate-300">最終得分</div>
-                    <div id="final-score" class="text-4xl font-black text-pink-400 mt-1">0 分</div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-sm">
-                    <div>正確題數: <span id="final-correct" class="font-bold text-emerald-400">0</span></div>
-                    <div>最高連擊: <span id="final-combo" class="font-bold text-amber-400">0x</span></div>
-                </div>
-            </div>
-            <button onclick="returnToMenu()" class="py-4 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 font-bold rounded-2xl shadow-xl transition cursor-pointer text-white border border-pink-400/30">
-                返回主選單重新挑戰
-            </button>
         </div>
 
     </main>
 
-    <footer class="text-xs text-slate-400 font-medium py-2">
-        職場求生對決慣老闆 © 2026 • Teachable Machine Pose Interactive Web Game
-    </footer>
-
-    <!-- 遊戲邏輯與 Pose 模型對接 -->
     <script>
-        const ALL_QUESTIONS = [
-            // 主題一：職場慣老闆與幹話特輯
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "今天午休福委會超給力，直接請大家喝星巴克，外加一人一塊千層蛋糕，爽啦！", gesture: "OK" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "禮拜五下午主管突然佛心來著，在休息區添購了兩台最新款按摩椅，隨時可以去躺。", gesture: "OK" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "禮拜五下午主管突然佛心來著，准許大家在大雨特報時直接切換居家辦公，免去塞車之苦。", gesture: "OK" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "一大早進辦公室總經理突擊檢查，說最近沒賺錢，今年年終獎金改成一人發一盒蛋黃酥。", gesture: "NO" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "下班前十分鐘總經理突擊檢查，把別人出包的爛攤子塞給你，還美其名說是『給你機會磨練』。", gesture: "NO" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "下午茶時間隔壁部門的業務，直接請大家喝星巴克，外加一人一塊千層蛋糕，爽啦！", gesture: "OK" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "連假前一天人資發出全公司信件：說年輕人就是太計較薪水，多留下來加班是幫自己累積福報。", gesture: "NO" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "下午茶時間隔壁部門主管跑來抱怨：下班後還狂傳 LINE 交辦事項，不馬上回就說你工作態度散漫。", gesture: "NO" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "下班前十分鐘隔壁部門的業務，直接請大家喝星巴克，外加一人一塊千層蛋糕，爽啦！", gesture: "OK" },
-            { topic: "主題一：職場慣老闆與幹話特輯", text: "部門聚餐時福委會超給力，把辦公室老舊電腦全換成最新 Mac，工作起來有夠順。", gesture: "OK" },
-            // 主題二：韓團飯圈護衛戰
-            { topic: "主題二：韓團飯圈護衛戰", text: "娜璉 SOLO 出道曲《POP!》一推出就洗腦全網，充滿夏日清爽活力！", gesture: "OK" },
-            { topic: "主題二：韓團飯圈護衛戰", text: "TWICE 經典神曲《What is Love?》的副歌舞蹈可愛到讓人忍不住跟著比愛心。", gesture: "OK" },
-            { topic: "主題二：韓團飯圈護衛戰", text: "NewJeans 的《Ditto》以獨特的 Y2K 復古 Lo-fi 質感風靡全球樂壇。", gesture: "OK" },
-            { topic: "主題二：韓團飯圈護衛戰", text: "居然有人在網路上散布 TWICE 演唱會門票作廢的假消息，氣死本粉絲！", gesture: "NO" },
-            // 主題三：豪記金曲大考驗
-            { topic: "主題三：豪記金曲大考驗", text: "龍千玉深情演唱的豪記招牌金曲《多情蝴蝶》，旋律優美動人。", gesture: "OK" },
-            { topic: "主題三：豪記金曲大考驗", text: "翁立友經典台語神曲《堅持》激勵無數台灣打拼的出外人。", gesture: "OK" },
-            { topic: "主題三：豪記金曲大考驗", text: "蕭玉芬的動人台語情歌總能唱出都會女性的心聲與堅強。", gesture: "OK" },
-            // 主題四：Hunter X Hunter大亂鬥
-            { topic: "主題四：Hunter X Hunter大亂鬥", text: "奇犽對小傑展現出無條件的友情與最強暗殺家族背景的帥氣反差！", gesture: "OK" },
-            { topic: "主題四：Hunter X Hunter大亂鬥", text: "西索在天空競技場一邊變態笑一邊說出『妳的眼神真棒』，讓人毛骨悚然。", gesture: "NO" },
-            { topic: "主題四：Hunter X Hunter大亂鬥", text: "會長在念能力試驗中與蟻王展開驚天動地的百式觀音對決！", gesture: "OK" }
-        ];
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/RmcjuKjfk/";
 
-        while (ALL_QUESTIONS.length < 100) {
-            let sample = ALL_QUESTIONS[Math.floor(Math.random() * ALL_QUESTIONS.length)];
-            ALL_QUESTIONS.push({ ...sample });
-        }
-
-        let model, webcam, ctx, maxPredictions;
-        let currentMode = 1;
-        let currentTopicFilter = 0;
-        let score = 0;
-        let correctCount = 0;
-        let combo = 0;
-        let maxCombo = 0;
-        let timeLeft = 30;
-        let currentQuestionIndex = 0;
-        let activeQuestions = [];
-        let gameActive = false;
-        let isCoolingDown = false;
-
-        // 使用對應的 Teachable Machine Pose 模型 URL
-        const URL_MODEL = "https://teachablemachine.withgoogle.com/models/RmcjuKjfk/";
-
+        let model, webcam, maxPredictions;
+        let selectedTheme = 'workplace';
+        let activeMode = 'fusion';
+        let isAudioPlaying = false;
         let audioCtx = null;
-        let pianoTimer = null;
-        let pianoPlaying = false;
+        let audioInterval = null;
 
-        function toggleBGM() {
-            const btn = document.getElementById('bgm-btn');
-            if (!pianoPlaying) {
-                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                pianoPlaying = true;
-                btn.innerHTML = '🎹 <span>關閉柔和鋼琴音樂</span>';
-                btn.classList.replace('bg-indigo-600', 'bg-pink-600');
-                startGentleAcousticPiano();
-            } else {
-                pianoPlaying = false;
-                btn.innerHTML = '🎹 <span>開啟柔和鋼琴音樂</span>';
-                btn.classList.replace('bg-pink-600', 'bg-indigo-600');
-                if (pianoTimer) clearInterval(pianoTimer);
-            }
+        let gameState = {
+            stage: 1,
+            maxStages: 50,
+            score: 0,
+            combo: 0,
+            bossRage: 20,
+            isGameActive: false,
+            currentQuestions: [],
+            currentScenario: null,
+            lockInput: false,
+            holdStartTime: null,
+            requiredHoldDuration: 1500
+        };
+
+        const questionPools = {
+            workplace: [
+                { boss: "董事長老陳", text: "「我們公司就像一個大家庭，大家要互相包容。雖然特休假法定有給，但目前專案吃緊，大家是不是可以『自主放棄』？」", expected: "NO", reason: "拒絕大家庭情緒勒索特休假！" },
+                { boss: "人資 Amy", text: "「公司規定每季繳交 3 篇心智圖報告，雖然是下班後寫，但這是考核重要依據喔。」", expected: "NO", reason: "拒絕下班後的無酬形式主義！" },
+                { boss: "CTO 大衛", text: "「這個功能明天就要上線，雖然規格還沒寫完，但我們先上 production，出問題再說！」", expected: "NO", reason: "拒絕無規格裸奔上線！" },
+                { boss: "財務總監", text: "「今天的午餐便當會議大家準時出席，雖然沒有提供便當，但可以一起討論宏大願景！」", expected: "NO", reason: "拒絕佔用午休又沒有便當的會議！" },
+                { boss: "店經理", text: "「今天人手不足，雖然你已經連續站了 10 小時，但晚班有人請假，你必須自動留下。」", expected: "NO", reason: "保護勞動權益，拒絕超時過勞！" },
+                { boss: "副總經理", text: "「雖然薪水低了一點，但你在這裡可以學到用錢買不到的『抗壓性』與『社會歷練』！」", expected: "NO", reason: "拒絕慣老闆用抗壓性洗腦取代薪水！" },
+                { boss: "行政主管", text: "「公司本季盈餘創新高，為表揚大家的努力，特別發放每人價值 50 元的下午茶即享券！」", expected: "OK", reason: "雖然有點少，但至少有下午茶！" }
+            ],
+            kpop: [
+                { boss: "飯圈總召", text: "「TWICE 新專輯 photocard 小卡沒收齊 50 張就不准吃飯，這才是真正的粉絲愛！」", expected: "NO", reason: "理性追星，拒絕盲目買卡壓力！" },
+                { boss: "娛樂記者", text: "「NewJeans 的最新舞台表現完美，舞蹈編排與音源概念完全是劃時代的藝術！」", expected: "OK", reason: "給予高度肯定與讚賞！" },
+                { boss: "唱片行老闆", text: "「這張限量黑膠唱片定價兩萬元，裡面只有一首歌，請全部包軌支持！」", expected: "NO", reason: "拒絕盤子價格！" }
+            ],
+            song: [
+                { boss: "台語歌王", text: "「這首經典台語悲傷情歌『落山風』，副歌轉音必須高亢撕心裂肺才有靈魂。」", expected: "OK", reason: "完美掌握豪記金曲精髓！" },
+                { boss: "資深DJ", text: "「現在年輕人都不聽台語對唱情歌了，我們應該全部改成電子重低音饒舌。」", expected: "NO", reason: "經典永流傳，拒絕盲目改編！" }
+            ],
+            hunter: [
+                { boss: "會長尼特羅", text: "「年輕人，要不要跟我用『百式觀音』在辦公室裡大戰三百回合？」", expected: "NO", reason: "辦公室空間太小，絕對會拆了公司！" },
+                { boss: "西索", text: "「嗯~~~♥ 你的念能力撲克牌充滿了美味的潛力呢，要不要現在跟我打一場？」", expected: "NO", reason: "危險變態，立刻拒絕！" },
+                { boss: "庫洛洛", text: "「這間公司的員工手冊寫得很完美，我的『盜賊極意』決定把它整本偷走。」", expected: "OK", reason: "允許幻影旅團把慣老闆幹話手冊偷走！" }
+            ]
+        };
+
+        function selectTheme(themeKey) {
+            playSfx(500, 0.05);
+            selectedTheme = themeKey;
+            ['workplace', 'kpop', 'song', 'hunter'].forEach(k => {
+                const card = document.getElementById(`theme-${k}`);
+                const dot = card.querySelector('.rounded-full.border-2');
+                const innerDot = dot.querySelector('.rounded-full');
+                if (k === themeKey) {
+                    card.classList.add('selected');
+                    dot.className = "mt-1 w-4 h-4 rounded-full border-2 border-pink-500 flex items-center justify-center";
+                    innerDot.className = "w-2 h-2 rounded-full bg-pink-500";
+                } else {
+                    card.classList.remove('selected');
+                    dot.className = "mt-1 w-4 h-4 rounded-full border-2 border-slate-500 flex items-center justify-center";
+                    innerDot.className = "w-2 h-2 rounded-full bg-transparent";
+                }
+            });
         }
 
-        function startGentleAcousticPiano() {
-            const chords = [
-                [261.63, 329.63, 392.00, 523.25, 659.25], // Cmaj7
-                [220.00, 261.63, 329.63, 440.00, 523.25], // Am7
-                [174.61, 261.63, 349.23, 440.00, 523.25], // Fmaj7
-                [196.00, 246.94, 293.66, 392.00, 493.88]   // G7
-            ];
-            let chordIdx = 0;
-            let noteIdx = 0;
-
-            pianoTimer = setInterval(() => {
-                if (!pianoPlaying || !audioCtx) return;
-                const freq = chords[chordIdx][noteIdx];
-                playPianoNote(freq);
-                noteIdx = (noteIdx + 1) % chords[chordIdx].length;
-                if (noteIdx === 0) chordIdx = (chordIdx + 1) % chords.length;
-            }, 750);
-        }
-
-        function playPianoNote(freq) {
-            try {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-                gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.045, audioCtx.currentTime + 0.05);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.8);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 1.8);
-            } catch (e) {
-                console.debug("Audio play warning:", e);
-            }
-        }
-
-        async function startGame(mode) {
-            currentMode = mode;
-            const selectedRadio = document.querySelector('input[name="topic"]:checked');
-            currentTopicFilter = selectedRadio ? parseInt(selectedRadio.value) : 0;
-
-            document.getElementById('menu-screen').classList.add('hidden');
-            document.getElementById('loading-screen').classList.remove('hidden');
-            document.getElementById('home-btn').classList.remove('hidden');
-
-            let topicNames = ["主題一：職場慣老闆與幹話特輯", "主題二：韓團飯圈護衛戰", "主題三：豪記金曲大考驗", "主題四：Hunter X Hunter大亂鬥"];
-            if (currentMode === 1) {
-                activeQuestions = ALL_QUESTIONS.filter(q => q.topic === topicNames[currentTopicFilter]);
-                if (activeQuestions.length === 0) activeQuestions = [...ALL_QUESTIONS];
-                activeQuestions.sort(() => Math.random() - 0.5);
-            } else {
-                activeQuestions = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, 50);
-            }
+        async function initModel() {
+            const modelURL = MODEL_URL + "model.json";
+            const metadataURL = MODEL_URL + "metadata.json";
 
             try {
-                const modelURL = URL_MODEL + "model.json";
-                const metadataURL = URL_MODEL + "metadata.json";
-
-                // 載入 Teachable Machine Pose 模型
                 model = await tmPose.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
 
-                // 設置攝影機
-                const size = 350;
                 const flip = true;
-                webcam = new tmPose.Webcam(size, size, flip); 
-                await webcam.setup(); 
+                webcam = new tmPose.Webcam(320, 240, flip);
+                await webcam.setup();
                 await webcam.play();
                 window.requestAnimationFrame(loop);
 
-                const container = document.getElementById('webcam-container');
-                container.innerHTML = '';
-                container.appendChild(webcam.canvas);
-                ctx = webcam.canvas.getContext('2d');
-                
-                document.getElementById('fps-badge').innerText = 'Pose AI 辨識中';
-                document.getElementById('fps-badge').className = 'px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-xs rounded-full border border-emerald-500/30 font-bold';
+                document.getElementById("webcam-container").innerHTML = "";
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
 
-                document.getElementById('loading-screen').classList.add('hidden');
-                document.getElementById('game-screen').classList.remove('hidden');
-
-                score = 0;
-                correctCount = 0;
-                combo = 0;
-                maxCombo = 0;
-                currentQuestionIndex = 0;
-                gameActive = true;
-
-                updateUIStats();
-                showNextQuestion();
-
-                if (currentMode === 1) {
-                    timeLeft = 30;
-                    document.getElementById('mode-title-tag').innerText = '30 秒極限模式';
-                    const timerInterval = setInterval(() => {
-                        if (!gameActive) {
-                            clearInterval(timerInterval);
-                            return;
-                        }
-                        timeLeft--;
-                        document.getElementById('time-or-count').innerText = timeLeft + 's';
-                        if (timeLeft <= 0) {
-                            clearInterval(timerInterval);
-                            endGame();
-                        }
-                    }, 1000);
-                } else {
-                    document.getElementById('mode-title-tag').innerText = '50 題大融合成就賽';
-                    document.getElementById('time-or-count').innerText = `1 / ${activeQuestions.length}`;
-                }
-
-            } catch (err) {
-                console.error("Initialization error:", err);
-                alert("無法順利存取攝影機或載入 Pose AI 模型，請確認瀏覽器權限或網路連線！");
-                returnToMenu();
+                document.getElementById("status-badge").className = "px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-full text-xs font-semibold flex items-center space-x-2";
+                document.getElementById("status-text").innerText = "AI 模型就緒";
+            } catch (e) {
+                console.error(e);
+                document.getElementById("status-badge").className = "px-3 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded-full text-xs font-semibold flex items-center space-x-2";
+                document.getElementById("status-text").innerText = "模型載入失敗";
             }
         }
 
+        window.addEventListener('DOMContentLoaded', () => {
+            initModel();
+        });
+
+        function startMode(mode) {
+            playSfx(700, 0.1);
+            activeMode = mode;
+            let pool = questionPools[selectedTheme] || questionPools.workplace;
+            let fullPool = [...pool, ...questionPools.workplace, ...questionPools.hunter];
+            gameState.currentQuestions = fullPool.sort(() => 0.5 - Math.random()).slice(0, mode === 'limit' ? 10 : 50);
+            gameState.maxStages = gameState.currentQuestions.length;
+            gameState.stage = 1;
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.bossRage = 20;
+            gameState.isGameActive = true;
+            gameState.lockInput = false;
+
+            document.getElementById("active-mode-name").innerText = mode === 'limit' ? '30 秒極限模式' : '50 題大融合賽';
+            document.getElementById("screen-start").classList.add("hidden");
+            document.getElementById("screen-result").classList.add("hidden");
+            document.getElementById("screen-game").classList.remove("hidden");
+
+            updateBossRageUI();
+            loadScenario();
+        }
+
+        function loadScenario() {
+            if (gameState.stage > gameState.currentQuestions.length) {
+                endGame();
+                return;
+            }
+
+            gameState.currentScenario = gameState.currentQuestions[gameState.stage - 1];
+            document.getElementById("current-stage").innerText = gameState.stage;
+            document.getElementById("boss-name").innerText = gameState.currentScenario.boss;
+            document.getElementById("scenario-text").innerText = gameState.currentScenario.text;
+            
+            gameState.lockInput = false;
+            gameState.holdStartTime = null;
+            document.getElementById("hold-progress-bar").style.width = "0%";
+            document.getElementById("detected-gesture-label").innerText = "目前手勢：Default (思考中)";
+            document.getElementById("detected-gesture-label").className = "text-slate-400 font-mono";
+        }
+
         async function loop(timestamp) {
-            if (!gameActive) return;
-            webcam.update();
-            await predict();
+            if (webcam && webcam.canvas) {
+                webcam.update();
+                await predict();
+            }
             window.requestAnimationFrame(loop);
         }
 
         async function predict() {
-            if (!model || !webcam || !gameActive) return;
-            // 估計 Pose 姿態與預測機率
+            if (!model || !gameState.isGameActive || gameState.lockInput) return;
+
             const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
             const prediction = await model.predict(posenetOutput);
 
@@ -420,151 +407,186 @@
             }
 
             const percent = Math.round(highestProb * 100);
-            document.getElementById('live-prediction').innerText = bestClassName === "Default" ? "等待手勢..." : bestClassName;
-            document.getElementById('confidence-bar').style.width = percent + '%';
-            document.getElementById('confidence-text').innerText = `信心值: ${percent}%`;
+            document.getElementById("confidence-bar").style.width = `${percent}%`;
 
-            // 繪製骨架到畫面 Canvas
-            drawPose(pose);
+            const gesture = bestClassName.trim().toUpperCase();
 
-            if (highestProb > 0.80 && bestClassName !== "Default" && !isCoolingDown && gameActive) {
-                evaluateAnswer(bestClassName);
-            }
-        }
-
-        function drawPose(pose) {
-            if (webcam.canvas) {
-                ctx.drawImage(webcam.canvas, 0, 0);
-                if (pose) {
-                    const minPartConfidence = 0.5;
-                    tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
-                    tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
-                }
-            }
-        }
-
-        function evaluateAnswer(detectedClass) {
-            const currentQ = activeQuestions[currentQuestionIndex];
-            if (!currentQ) return;
-
-            const isTargetOK = currentQ.gesture === "OK";
-            const isDetectedOK = detectedClass.toUpperCase().includes("OK");
-            const isDetectedNO = detectedClass.toUpperCase().includes("NO");
-
-            let isCorrect = false;
-            if (isTargetOK && isDetectedOK) isCorrect = true;
-            if (!isTargetOK && isDetectedNO) isCorrect = true;
-
-            if (!isDetectedOK && !isDetectedNO) return;
-
-            triggerCooldown(isCorrect);
-        }
-
-        function triggerCooldown(isCorrect) {
-            isCoolingDown = true;
-            const card = document.getElementById('question-card');
-            const feedbackIcon = document.getElementById('feedback-icon');
-
-            if (isCorrect) {
-                card.className = "bg-emerald-950/90 border-2 border-emerald-500 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[220px] transition-all duration-300 relative shadow-2xl";
-                feedbackIcon.innerText = "⭕ 正確！";
-                feedbackIcon.className = "absolute top-4 right-4 text-3xl font-black text-emerald-400 opacity-100 transition-opacity duration-300";
-                
-                combo++;
-                if (combo > maxCombo) maxCombo = combo;
-                let multiplier = Math.min(Math.floor(combo / 3) + 1, 5);
-                score += 100 * multiplier;
-                correctCount++;
-            } else {
-                card.className = "bg-rose-950/90 border-2 border-rose-500 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[220px] transition-all duration-300 relative shadow-2xl";
-                feedbackIcon.innerText = "❌ 錯誤！";
-                feedbackIcon.className = "absolute top-4 right-4 text-3xl font-black text-rose-400 opacity-100 transition-opacity duration-300";
-                
-                combo = 0;
-                if (currentMode === 2) {
-                    score = Math.max(0, score - 50);
-                }
+            // CRITICAL: Default state MUST NOT trigger countdowns or actions!
+            if (gesture.includes("DEFAULT") || highestProb < 0.80) {
+                gameState.holdStartTime = null;
+                document.getElementById("hold-progress-bar").style.width = "0%";
+                document.getElementById("detected-gesture-label").innerText = `目前手勢：${bestClassName} (${percent}%)`;
+                document.getElementById("detected-gesture-label").className = "text-slate-400 font-mono";
+                return;
             }
 
-            updateUIStats();
+            // Only trigger hold timer if OK or NO is detected with high confidence
+            if (gesture.includes("OK") || gesture.includes("NO")) {
+                document.getElementById("detected-gesture-label").innerText = `偵測中：${gesture} (${percent}%) - 請保持！`;
+                document.getElementById("detected-gesture-label").className = "text-pink-400 font-mono font-bold animate-pulse";
 
-            let coolTime = 1400;
-            let interval = 50;
-            let elapsed = 0;
-            const cooldownBar = document.getElementById('cooldown-bar');
-            const cooldownStatus = document.getElementById('cooldown-status');
-            const cooldownPercent = document.getElementById('cooldown-percent');
+                if (!gameState.holdStartTime) {
+                    gameState.holdStartTime = Date.now();
+                } else {
+                    const elapsed = Date.now() - gameState.holdStartTime;
+                    const progress = Math.min(100, (elapsed / gameState.requiredHoldDuration) * 100);
+                    document.getElementById("hold-progress-bar").style.width = `${progress}%`;
 
-            cooldownStatus.innerText = isCorrect ? "答對！休息一下..." : "答錯！冷卻中...";
-
-            const coolTimer = setInterval(() => {
-                elapsed += interval;
-                let leftPercent = Math.max(0, 100 - (elapsed / coolTime) * 100);
-                cooldownBar.style.width = leftPercent + '%';
-                cooldownPercent.innerText = ((coolTime - elapsed) / 1000).toFixed(1) + 's';
-
-                if (elapsed >= coolTime) {
-                    clearInterval(coolTimer);
-                    isCoolingDown = false;
-                    card.className = "bg-slate-900 border-2 border-white/15 rounded-2xl p-8 text-center flex flex-col items-center justify-center min-h-[220px] transition-all duration-300 relative shadow-2xl";
-                    feedbackIcon.className = "absolute top-4 right-4 text-4xl opacity-0 transition-opacity duration-300";
-                    cooldownStatus.innerText = "請比出正確手勢 (OK 或 NO)";
-                    cooldownPercent.innerText = "準備就緒";
-                    cooldownBar.style.width = '100%';
-
-                    currentQuestionIndex++;
-                    if (currentMode === 2 && currentQuestionIndex >= activeQuestions.length) {
-                        endGame();
-                    } else {
-                        if (currentMode === 1 && currentQuestionIndex >= activeQuestions.length) {
-                            activeQuestions.sort(() => Math.random() - 0.5);
-                            currentQuestionIndex = 0;
-                        }
-                        showNextQuestion();
-                        if (currentMode === 2) {
-                            document.getElementById('time-or-count').innerText = `${currentQuestionIndex + 1} / ${activeQuestions.length}`;
-                        }
+                    if (elapsed >= gameState.requiredHoldDuration) {
+                        gameState.lockInput = true;
+                        evaluateAnswer(gesture.includes("OK") ? "OK" : "NO");
                     }
                 }
-            }, interval);
+            } else {
+                gameState.holdStartTime = null;
+                document.getElementById("hold-progress-bar").style.width = "0%";
+            }
         }
 
-        function showNextQuestion() {
-            const q = activeQuestions[currentQuestionIndex];
-            if (!q) return;
-            document.getElementById('question-theme-tag').innerText = q.topic;
-            document.getElementById('question-text').innerText = q.text;
+        function evaluateAnswer(userChoice) {
+            const expected = gameState.currentScenario.expected;
+            const isCorrect = (userChoice === expected);
+
+            if (isCorrect) {
+                gameState.combo++;
+                const bonus = Math.min(5, gameState.combo);
+                gameState.score += (10 + bonus * 2);
+                gameState.bossRage = Math.max(0, gameState.bossRage - 15);
+                playSfx(880, 0.15);
+            } else {
+                gameState.combo = 0;
+                gameState.bossRage = Math.min(100, gameState.bossRage + 25);
+                playSfx(220, 0.2);
+                triggerBossRageEffect();
+            }
+
+            updateComboUI();
+            updateBossRageUI();
+
+            const feedbackText = isCorrect ? 
+                `✅ 判定正確！${gameState.currentScenario.reason}` : 
+                `❌ 判定錯誤！正確應為 ${expected}。${gameState.currentScenario.reason}`;
+
+            document.getElementById("scenario-text").innerText = feedbackText;
+            
+            setTimeout(() => {
+                gameState.stage++;
+                loadScenario();
+            }, 2500);
         }
 
-        function updateUIStats() {
-            document.getElementById('score-display').innerText = `分數: ${score}`;
-            let multiplier = Math.min(Math.floor(combo / 3) + 1, 5);
-            document.getElementById('combo-display').innerText = `${multiplier}x (連${combo})`;
+        function updateComboUI() {
+            const badge = document.getElementById("combo-badge");
+            const countEl = document.getElementById("combo-count");
+            if (gameState.combo > 1) {
+                badge.classList.remove("hidden");
+                countEl.innerText = gameState.combo;
+            } else {
+                badge.classList.add("hidden");
+            }
+        }
+
+        function updateBossRageUI() {
+            const bar = document.getElementById("boss-rage-bar");
+            bar.style.width = `${gameState.bossRage}%`;
+        }
+
+        function triggerBossRageEffect() {
+            const card = document.getElementById("boss-panel-card");
+            card.classList.add("rage-shake");
+            setTimeout(() => {
+                card.classList.remove("rage-shake");
+            }, 400);
         }
 
         function endGame() {
-            gameActive = false;
-            if (webcam && webcam.stop) {
-                webcam.stop();
-            }
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.remove('hidden');
+            gameState.isGameActive = false;
+            document.getElementById("screen-game").classList.add("hidden");
+            document.getElementById("screen-result").classList.remove("hidden");
 
-            document.getElementById('final-score').innerText = `${score} 分`;
-            document.getElementById('final-correct').innerText = correctCount;
-            document.getElementById('final-combo').innerText = `${maxCombo}x`;
+            const iconEl = document.getElementById("result-icon");
+            const titleEl = document.getElementById("result-title");
+            const descEl = document.getElementById("result-desc");
+
+            iconEl.className = "w-24 h-24 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center justify-center mx-auto text-4xl shadow-inner";
+            iconEl.innerHTML = '<i class="fa-solid fa-trophy"></i>';
+            titleEl.innerText = "挑戰圓滿完成！";
+            descEl.innerText = `總得分：${gameState.score} 分。你成功順利通關所有情境，展現了強大的職場求生智慧！`;
         }
 
-        function returnToMenu() {
-            gameActive = false;
-            if (webcam && webcam.stop) {
-                webcam.stop();
+        function returnToHome() {
+            playSfx(400, 0.08);
+            document.getElementById("screen-result").classList.add("hidden");
+            document.getElementById("screen-start").classList.remove("hidden");
+        }
+
+        function toggleMusic() {
+            isAudioPlaying = !isAudioPlaying;
+            const btnText = document.getElementById("music-text");
+            if (isAudioPlaying) {
+                btnText.innerText = "關閉柔和鋼琴音樂";
+                startAmbientPiano();
+            } else {
+                btnText.innerText = "開啟柔和鋼琴音樂";
+                stopAmbientPiano();
             }
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('gameover-screen').classList.add('hidden');
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('menu-screen').classList.remove('hidden');
-            document.getElementById('home-btn').classList.add('hidden');
+        }
+
+        function playSfx(freq, duration) {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        function startAmbientPiano() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C4, D4, E4, G4, A4, C5
+            audioInterval = setInterval(() => {
+                if (!isAudioPlaying) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(notes[Math.floor(Math.random() * notes.length)], audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 3);
+            }, 3000);
+        }
+
+        function stopAmbientPiano() {
+            if (audioInterval) {
+                clearInterval(audioInterval);
+                audioInterval = null;
+            }
         }
     </script>
 </body>
